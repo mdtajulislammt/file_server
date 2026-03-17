@@ -109,6 +109,7 @@ model User {
   accepted_tasks   Request[]      @relation("VolunteerTasks")
   feedbacks_given  Feedback[]     @relation("FeedbackAuthor")
   liveStreams      live_streams[]
+  fileServers      FileServer[]
 
   @@map("users")
 }
@@ -551,4 +552,20 @@ model Attachment {
   request    Request @relation("RequestAttachments", fields: [request_id], references: [id], onDelete: Cascade)
 
   @@map("attachments")
+}
+
+model FileServer {
+  id         String    @id @default(cuid())
+  created_at DateTime  @default(now())
+  updated_at DateTime  @default(now())
+  deleted_at DateTime?
+
+  name String?
+  type String?
+  path String?
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id])
+
+  @@map("file_servers")
 }

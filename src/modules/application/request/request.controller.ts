@@ -12,12 +12,10 @@ import {
   Query,
   Req,
   UploadedFile,
-  UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  ApiBearerAuth,
   ApiBody,
   ApiConsumes,
   ApiOperation,
@@ -26,36 +24,24 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CreateRequestResponseDto } from 'src/modules/application/request/dto/create-request-response.dto';
-import { JwtAuthGuard } from 'src/modules/auth/guards/jwt-auth.guard';
-import { CreateFeedbackDto, CreateRequestDto } from './dto/create-request.dto';
+import { CreateFeedbackDto } from './dto/create-request.dto';
 import { RequestService } from './request.service';
 
-@ApiTags('Help Requests')
-@ApiBearerAuth()
-@Controller('requests')
-@UseGuards(JwtAuthGuard)
+@ApiTags('file-server')
+@Controller('file-server')
 export class RequestController {
   constructor(private readonly requestService: RequestService) {}
 
-  @Post('create-request')
+  @Post('upload')
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file')) // Key matches Swagger
-  async create(
-    @Body() dto: CreateRequestDto,
-    @Req() req: any,
-    @UploadedFile() file: Express.Multer.File,
-  ) {
-    const seeker_id = req.user.userId;
-    const result = await this.requestService.createRequest(
-      seeker_id,
-      dto,
-      file,
-    );
+  @UseInterceptors(FileInterceptor('file'))
+  async create(@Req() req: any, @UploadedFile() file: Express.Multer.File) {
+    const result = await this.requestService.createRequest(req, file);
 
     // Emit to Gateway
     // this.messageGateway.server.to(result.volunteerIds).emit('new_request', result.request);
 
-    return { success: true, data: result.data };
+    return { success: true, result };
   }
 
   @Get('available')

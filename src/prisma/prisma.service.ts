@@ -13,6 +13,7 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(PrismaService.name);
+  fileServer: any;
 
   constructor() {
     const datasourceUrl = appConfig().database.url;

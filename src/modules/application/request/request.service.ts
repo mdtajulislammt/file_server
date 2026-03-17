@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
@@ -9,7 +10,7 @@ import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
 import appConfig from 'src/config/app.config';
 import { MessageGateway } from 'src/modules/chat/message/message.gateway';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateFeedbackDto, CreateRequestDto } from './dto/create-request.dto';
+import { CreateFeedbackDto } from './dto/create-request.dto';
 
 @Injectable()
 export class RequestService {
@@ -18,101 +19,34 @@ export class RequestService {
     private readonly messageGateway: MessageGateway,
   ) {}
 
-  async createRequest(
-    seeker_id: string,
-    dto: CreateRequestDto,
-    file: Express.Multer.File,
-  ) {
-    // 1. Validate Seeker
-    const user = await this.prisma.user.findUnique({
-      where: { id: seeker_id },
-      select: { id: true, type: true, name: true }, // Optimization: Only select what you need
-    });
-
-    if (!user) throw new NotFoundException('User not found');
-    if (user.type !== UserType.SEEKER) {
-      throw new BadRequestException('User is not a seeker');
+  async createRequest(req: any, file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('File is required');
     }
 
-    let attachmentPath = '';
-    if (file) {
-      try {
-        // Generate name: e.g., 1772526..._image.jpg
-        attachmentPath = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
-
-        // The path relative to your storage root
-        const relativePath = `requests/${attachmentPath}`;
-
-        // Upload the buffer
-        await TajulStorage.put(relativePath, file.buffer);
-      } catch (uploadError) {
-        console.error('Upload Error:', uploadError);
-        throw new BadRequestException('Failed to upload image.');
-      }
-    }
+    const attachmentPath = `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`;
+    const fullStoragePath = `${appConfig().storageUrl.fileServer}/${attachmentPath}`;
 
     try {
-      const result = await this.prisma.$transaction(async (tx) => {
-        const request = await tx.request.create({
-          data: {
-            title: dto.title,
-            description: dto.description,
-            category: dto.category,
-            location: dto.location,
-            estimated_duration: dto.estimated_duration,
-            urgency_level: dto.urgency_level,
-            skills_needed: dto.skills_needed,
-            status: RequestStatus.PENDING,
-            seeker_id: seeker_id,
-            attachments: attachmentPath
-              ? {
-                  create: {
-                    path: attachmentPath,
-                    name: file.originalname,
-                    type: file.mimetype,
-                  },
-                }
-              : undefined,
-          },
-          include: { attachments: true },
-        });
+      // 1. Upload to Storage
+      const relativePath = TajulStorage.url(fullStoragePath);
+      await TajulStorage.put(relativePath, file.buffer);
 
-        // const volunteers = await tx.user.findMany({
-        //   where: { type: UserType.VOLUNTEER },
-        //   select: { id: true },
-        // });
-
-        // if (volunteers.length > 0) {
-        //   await tx.notification.createMany({
-        //     data: volunteers.map((volunteer) => ({
-        //       sender_id: seeker_id,
-        //       receiver_id: volunteer.id,
-        //       content: `New request: ${request.title} by ${user.name}`,
-        //       entity_id: request.id,
-        //     })),
-        //   });
-        // }
-
-        // return { request, volunteerIds: volunteers.map((v) => v.id) };
-        return { request };
+      // 2. Persist to Database
+      // Note: request_id must come from the DTO or a parent 'Request' record
+      return await this.prisma.fileServer.create({
+        data: {
+          name: attachmentPath,
+          type: 'image',
+          path: fullStoragePath,
+        },
       });
-
-      // 4. Real-time Emission (Outside transaction to prevent blocking)
-      // this.messageGateway.server
-      //   .to(result.volunteerIds)
-      //   .emit('new_request', result.request);
-
-      return {
-        success: true,
-        message: 'Request created successfully',
-        data: result.request,
-        // volunteerIds: result.volunteerIds,
-      };
     } catch (error) {
-      // console.error('Prisma Validation Error:', error);
-      throw new BadRequestException(
-        'Failed to create request. Technical details: ' + error.message,
-      );
+      // Log error for internal tracking
+      console.error('[Attachment Upload Error]:', error);
+
+      // If storage succeeded but DB failed, consider a cleanup strategy here
+      throw new InternalServerErrorException('Could not process attachment');
     }
   }
 

@@ -78,8 +78,8 @@ export default () => ({
    * Storage directory
    */
   storageUrl: {
-    rootUrl: './public/storage',
-    rootUrlPublic: '/public/storage',
+    rootUrl: './public',
+    rootUrlPublic: '/public',
     // storage directory
     package: '/package',
     destination: '/destination',
@@ -92,6 +92,8 @@ export default () => ({
     jobPhoto: 'job-photo/',
     postCommunity: 'post-community/',
     requests: 'requests/',
+    fileServer: 'file-server/',
+    uploads: 'uploads/',
   },
 
   defaultUser: {
