@@ -26,10 +26,21 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'public'), {
     index: false,
     prefix: '/public',
+    setHeaders: (res, path) => {
+      // Jodi path-er moddhe 'ai-storage' thake, tobe header set korbe
+      if (path.includes('ai-storage')) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      }
+    },
   });
+
   app.useStaticAssets(join(process.cwd(), 'public/storage'), {
     index: false,
     prefix: '/storage',
+    setHeaders: (res, path) => {
+      // Safety-r jonno storage folder-eo noindex rakha bhalo
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    },
   });
 
   app.useGlobalPipes(
