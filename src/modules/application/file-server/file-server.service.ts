@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import * as fs from 'fs';
 import { join } from 'path';
 import { TajulStorage } from 'src/common/lib/Disk/TajulStorage';
@@ -10,24 +10,25 @@ export class FileService {
   private readonly uploadDir = join(process.cwd(), 'public', 'uploads');
   constructor(private prisma: PrismaService) {}
 
-  async uploadFileLocal(file: Express.Multer.File) {
+
+async processAiUpload(file: Express.Multer.File) {
     if (!file) {
-      return {
-        status: 400,
-        message: 'No file uploaded',
-      };
+      throw new BadRequestException('No file uploaded');
     }
 
-    // Database-e save na kore sudu file details return korchi
-    // File-ti ekhon 'public/uploads' folder-e ache
+    // Path formatting for URL (Backslash to Forward slash)
+    const formattedPath = file.path.replace(/\\/g, '/');
+
     return {
       status: 200,
-      message: 'File uploaded successfully to local storage',
+      message: 'File uploaded successfully to AI storage',
       data: {
         original_name: file.originalname,
         filename: file.filename,
-        path: `${appConfig().storageUrl.uploads}${file.filename}`,
+        path: formattedPath,
         size: file.size,
+        mimetype: file.mimetype,
+        uploaded_at: new Date(),
       },
     };
   }

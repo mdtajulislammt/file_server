@@ -94,6 +94,7 @@ export default () => ({
     requests: 'requests/',
     fileServer: 'file-server/',
     uploads: 'uploads/',
+    aiStorage: 'ai-storage/',
   },
 
   defaultUser: {
