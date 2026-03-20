@@ -14,6 +14,8 @@ import appConfig from './config/app.config';
 import { AuthModule } from './modules/auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 // import { ThrottlerBehindProxyGuard } from './common/guard/throttler-behind-proxy.guard';
+import { ScheduleModule } from '@nestjs/schedule';
+import { FileCleanupService } from 'src/modules/application/file-server/entities/corn-file-server';
 import { RequestModule } from 'src/modules/application/request/request.module';
 import { AbilityModule } from './ability/ability.module';
 import { RepositoryModule } from './common/repository/repository.module';
@@ -26,6 +28,7 @@ import { PrometheusModule } from './prometheus/prometheus.module';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [appConfig],
@@ -93,6 +96,7 @@ import { PrometheusModule } from './prometheus/prometheus.module';
     //   useClass: ThrottlerBehindProxyGuard,
     // },
     AppService,
+    FileCleanupService,
   ],
 })
 export class AppModule {
