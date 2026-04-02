@@ -1,6 +1,8 @@
 import {
   Controller,
+  Delete,
   Get,
+  Param,
   Post,
   UploadedFile,
   UseGuards,
@@ -26,5 +28,11 @@ export class FileController {
   @UseGuards(UploadGuard)
   async getImages() {
     return this.fileService.getAllImages();
+  }
+
+  @Get(':filename')
+  @UseGuards(UploadGuard)
+  async getFile(@Param('filename') filename: string) {
+    return this.fileService.getFile(filename);
   }
 }

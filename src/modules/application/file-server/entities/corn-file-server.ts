@@ -20,7 +20,7 @@ export class FileCleanupService implements OnModuleInit {
     this.logger.log('🔍 Starting targeted 2-month cleanup scan...');
     
     const now = Date.now();
-    const TWO_MONTHS_MS = 60 * 24 * 60 * 60 * 1000; // 60 days
+    const TWO_MONTHS_MS = 60 * 24 * 60 * 60 * 1000; 
     
     // Counter for console report
     let deletedCount = 0;

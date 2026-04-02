@@ -105,23 +105,22 @@ export class FileService {
     }
   }
 
-  async findOne(id: string) {
-    const file = await this.prisma.fileServer.findFirst({
-      where: { id, deleted_at: null },
-      include: { user: true },
-    });
+  async getFile(filename: string) {
+    const filePath = path.join(this.storageDir, filename);
 
-    if (!file) {
-      throw new NotFoundException(`File with ID ${id} not found`);
+    if (!fs.existsSync(filePath)) {
+      throw new NotFoundException(`File with name ${filename} not found`);
     }
-    return file;
-  }
 
-  async softDelete(id: string) {
-    await this.findOne(id);
-    return this.prisma.fileServer.update({
-      where: { id },
-      data: { deleted_at: new Date() },
-    });
+    return {
+      status: 200,
+      message: 'File retrieved successfully',
+      data: {
+        name: path.basename(filePath),
+        type: path.extname(filePath).toLowerCase(),
+        url: TajulStorage.url(`${appConfig().storageUrl.aiStorage}${filename}`),
+        created_at: fs.statSync(filePath).birthtime,
+      },
+    };
   }
 }
