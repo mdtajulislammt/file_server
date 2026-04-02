@@ -1,6 +1,5 @@
 import {
   Controller,
-  Delete,
   Get,
   Param,
   Post,
@@ -33,6 +32,6 @@ export class FileController {
   @Get(':filename')
   @UseGuards(UploadGuard)
   async getFile(@Param('filename') filename: string) {
-    return this.fileService.getFile(filename);
+    return this.fileService.getSingleMedia(filename);
   }
 }

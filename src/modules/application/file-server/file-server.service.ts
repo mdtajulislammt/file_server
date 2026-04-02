@@ -105,22 +105,60 @@ export class FileService {
     }
   }
 
-  async getFile(filename: string) {
-    const filePath = path.join(this.storageDir, filename);
+async getSingleMedia(fileName: string) {
+  try {
+    // 1. Recursive search to find the specific file
+    const getFilesRecursively = (dirPath: string): string | null => {
+      const list = fs.readdirSync(dirPath);
+      for (const file of list) {
+        const fullPath = path.join(dirPath, file);
+        const stat = fs.statSync(fullPath);
 
-    if (!fs.existsSync(filePath)) {
-      throw new NotFoundException(`File with name ${filename} not found`);
+        if (stat && stat.isDirectory()) {
+          const found = getFilesRecursively(fullPath);
+          if (found) return found;
+        } else if (file === fileName) {
+          return fullPath;
+        }
+      }
+      return null;
+    };
+
+    const filePath = getFilesRecursively(this.storageDir);
+
+    // 2. If file not found
+    if (!filePath) {
+      throw new NotFoundException(`File ${fileName} not found in AI storage`);
     }
+
+    // 3. Metadata calculation
+    const stat = fs.statSync(filePath);
+    const extension = path.extname(filePath).toLowerCase();
+    const relativePath = path
+      .relative(this.storageDir, filePath)
+      .replace(/\\/g, '/');
+
+    const isVideo = ['.mp4', '.mkv', '.mov', '.webm'].includes(extension);
 
     return {
       status: 200,
-      message: 'File retrieved successfully',
+      message: 'Media file retrieved successfully',
       data: {
         name: path.basename(filePath),
-        type: path.extname(filePath).toLowerCase(),
-        url: TajulStorage.url(`${appConfig().storageUrl.aiStorage}${filename}`),
-        created_at: fs.statSync(filePath).birthtime,
+        type: isVideo ? 'video' : 'image',
+        url: TajulStorage.url(
+          `${appConfig().storageUrl.aiStorage}${relativePath}`,
+        ),
+        size: stat.size,
+        mimetype: isVideo ? `video/${extension.slice(1)}` : `image/${extension.slice(1)}`,
+        created_at: stat.birthtime,
       },
     };
+  } catch (error) {
+    return {
+      status: error.status || 500,
+      message: error.message || 'Internal Server Error',
+    };
   }
+}
 }
